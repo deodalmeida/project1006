@@ -1,0 +1,15 @@
+.DS_Store
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfplan
+terraform/terraform.tfvars
+terraform/backend.hcl
+bootstrap/.terraform/
+bootstrap/*.tfstate
+bootstrap/*.tfstate.*
+bootstrap/.terraform.lock.hcl

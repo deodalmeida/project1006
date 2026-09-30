@@ -1,0 +1,54 @@
+name: Terraform Student CI
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+      - "bootstrap/**"
+      - ".github/workflows/terraform-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - "bootstrap/**"
+      - ".github/workflows/terraform-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Format student Terraform
+        shell: bash
+        run: |
+          if find bootstrap terraform -name '*.tf' -print -quit | grep -q .; then
+            terraform fmt -check -recursive bootstrap terraform
+          else
+            echo "No student Terraform yet. Complete the assignments first."
+          fi
+
+      - name: Validate bootstrap when implemented
+        shell: bash
+        run: |
+          if find bootstrap -maxdepth 1 -name '*.tf' -print -quit | grep -q .; then
+            terraform -chdir=bootstrap init -backend=false
+            terraform -chdir=bootstrap validate
+          else
+            echo "bootstrap/ is still an assignment."
+          fi
+
+      - name: Validate main infrastructure when implemented
+        shell: bash
+        run: |
+          if find terraform -maxdepth 1 -name '*.tf' -print -quit | grep -q .; then
+            terraform -chdir=terraform init -backend=false
+            terraform -chdir=terraform validate
+          else
+            echo "terraform/ is still an assignment."
+          fi
