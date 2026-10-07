@@ -1,0 +1,61 @@
+#!/bin/bash
+# Bootstraps a fresh Amazon Linux 2023 instance into a healthy ALB target.
+# Rendered by Terraform templatefile(); contains no secrets. The DB password
+# is fetched at runtime by the app from Secrets Manager using the instance role.
+# Output is logged to /var/log/cloud-init-output.log.
+set -euxo pipefail
+
+APP_DIR=/opt/app
+
+# --- Packages -------------------------------------------------------------
+dnf install -y python3.12 python3.12-pip
+
+# --- Application files ----------------------------------------------------
+id app >/dev/null 2>&1 || useradd --system --home-dir "$APP_DIR" --shell /sbin/nologin app
+mkdir -p "$APP_DIR"
+echo '${app_py_b64}' | base64 -d > "$APP_DIR/app.py"
+echo '${requirements_b64}' | base64 -d > "$APP_DIR/requirements.txt"
+
+python3.12 -m venv "$APP_DIR/venv"
+"$APP_DIR/venv/bin/pip" install --no-cache-dir --upgrade pip
+"$APP_DIR/venv/bin/pip" install --no-cache-dir -r "$APP_DIR/requirements.txt"
+chown -R app:app "$APP_DIR"
+
+# --- systemd service ------------------------------------------------------
+cat > /etc/systemd/system/app.service <<'UNIT'
+[Unit]
+Description=Flask application (gunicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=app
+Group=app
+WorkingDirectory=/opt/app
+Environment=AWS_REGION=${aws_region}
+Environment=DB_HOST=${db_host}
+Environment=DB_NAME=${db_name}
+Environment=DB_SECRET_ARN=${db_secret_arn}
+ExecStart=/opt/app/venv/bin/gunicorn --workers 2 --bind 0.0.0.0:${app_port} --access-logfile - app:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now app.service
+
+# --- Fail loudly if the app never becomes healthy -------------------------
+for _ in $(seq 1 30); do
+  if curl -fsS "http://127.0.0.1:${app_port}/health"; then
+    echo "Bootstrap complete: app healthy on port ${app_port}"
+    exit 0
+  fi
+  sleep 2
+done
+
+echo "ERROR: app did not become healthy" >&2
+journalctl -u app.service --no-pager -n 50 >&2
+exit 1

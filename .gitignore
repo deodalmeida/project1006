@@ -12,4 +12,6 @@ terraform/backend.hcl
 bootstrap/.terraform/
 bootstrap/*.tfstate
 bootstrap/*.tfstate.*
+bootstrap/*.tfplan
+bootstrap/terraform.tfvars
 bootstrap/.terraform.lock.hcl
