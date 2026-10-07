@@ -22,11 +22,6 @@ variable "state_key_prefix" {
   default     = "job-readiness"
 }
 
-variable "github_repository" {
-  description = "GitHub repository (owner/name) allowed to assume the CI/CD roles."
-  type        = string
-  default     = "deodalmeida/project1006"
-}
 
 variable "github_apply_environment" {
   description = "GitHub Environment (with required reviewers) whose jobs may assume the apply role."
@@ -38,4 +33,10 @@ variable "app_environment" {
   description = "Environment name of the main stack; scopes the IAM resources the apply role may manage."
   type        = string
   default     = "dev"
+}
+
+variable "github_oidc_sub_prefix" {
+  description = "Prefix of the OIDC 'sub' claim GitHub issues for the repository (immutable format: repo:<owner>@<owner_id>/<repo>@<repo_id>)."
+  type        = string
+  default     = "repo:deodalmeida@264557802/project1006@1408087175"
 }

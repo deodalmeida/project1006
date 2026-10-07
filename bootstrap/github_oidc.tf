@@ -13,7 +13,10 @@ data "aws_iam_openid_connect_provider" "github" {
 }
 
 locals {
-  github_sub_prefix = "repo:${var.github_repository}"
+  # This repo uses GitHub's immutable OIDC subject format, which embeds the
+  # numeric owner/repo IDs (a deleted and re-created repo with the same name
+  # cannot assume these roles). Check: GET /repos/{owner}/{repo}/actions/oidc/customization/sub
+  github_sub_prefix = var.github_oidc_sub_prefix
 }
 
 # ---------------------------------------------------------------------------
